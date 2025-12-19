@@ -1,5 +1,25 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import api from "../../configs/api";
+
+
+// =======================
+// LOGOUT HANDLER
+// =======================
+const handleLogout = async (navigate) => {
+  try {
+    await api.post("/auth/logout");
+  } catch (err) {
+    // Không cần xử lý gì thêm, logout vẫn tiếp tục
+  } finally {
+    // Clear token phía FE
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+
+    navigate("/login");
+  }
+};
+
 
 // ICON WRAPPER
 const IconBox = ({ children, color = "text-indigo-500" }) => (
@@ -241,16 +261,45 @@ export default function StaffDashboard() {
       {/* SIDEBAR */}
       <aside className="w-64 bg-white shadow-lg p-5 space-y-2">
 
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Staff Menu</h2>
+  <h2 className="text-xl font-bold text-gray-800 mb-4">Staff Menu</h2>
 
-        {menu.map((item, idx) => (
-          <SidebarItem
-            key={idx}
-            {...item}
-            active={location.pathname === item.to}
-          />
-        ))}
-      </aside>
+  {menu.map((item, idx) => (
+    <SidebarItem
+      key={idx}
+      {...item}
+      active={location.pathname === item.to}
+    />
+  ))}
+
+  {/* LOGOUT */}
+  <hr className="my-4" />
+
+  <button
+    onClick={() => handleLogout(navigate)}
+    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg
+               text-sm font-medium text-red-600 hover:bg-red-50 transition"
+  >
+    <IconBox color="text-red-500">
+      <svg
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={1.5}
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3-3H9m6 0l-3-3m3 3l-3 3"
+        />
+      </svg>
+    </IconBox>
+    Logout
+  </button>
+
+</aside>
+
+
+     
 
       {/* MAIN CONTENT */}
       <main className="flex-1 p-10">
