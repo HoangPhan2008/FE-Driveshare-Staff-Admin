@@ -124,105 +124,38 @@ export default function UserPage() {
   const [userDocuments, setUserDocuments] = useState([]);
   const [previewImage, setPreviewImage] = useState(null);
 
+// DRIVER ACTIVITY LOGS
+const [activityLogs, setActivityLogs] = useState([]);
+const [logLoading, setLogLoading] = useState(false);
 
   
   const pendingRef = useRef(null);
 
-  // ==========================
-// ADMIN UPDATE / DELETE USER
-// ==========================
-const [editOpen, setEditOpen] = useState(false);
-const [editForm, setEditForm] = useState({});
-const [saving, setSaving] = useState(false);
-
-const [avatarUploading, setAvatarUploading] = useState(false);
 
 
-const openEditUser = (user) => {
-  if (!user) return;
-  setEditForm({
-    fullName: user.fullName || "",
-    avatarUrl: user.avatarUrl || "",
-    dateOfBirth: user.dateOfBirth || "",
-    address: user.address || null,
-    companyName: "",
-    taxCode: "",
-    licenseNumber: "",
-    licenseClass: "",
-    licenseExpiryDate: "",
-    businessAddress: null,
-  });
-  setEditOpen(true);
-};
-
-const submitUpdateUser = async () => {
+const approveActivation = async () => {
   if (!selectedUser) return;
-  try {
-    setSaving(true);
-    const res = await api.put(`/User/${selectedUser.userId}`, editForm);
-    if (!res.data?.isSuccess) {
-      alert(res.data?.message || "Update failed");
-      return;
-    }
-    setEditOpen(false);
-    setSelectedUser(null);
-    await fetchUsers();
-  } catch {
-    alert("Error updating user");
-  } finally {
-    setSaving(false);
-  }
-};
 
-const uploadAvatar = async (file) => {
-  if (!file) return;
+  if (!window.confirm("Bạn chắc chắn muốn kích hoạt lại tài khoản này?"))
+    return;
 
   try {
-    setAvatarUploading(true);
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "avatar_upload");
-    formData.append("folder", "avatars");
-
-    const res = await fetch(
-      "https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload",
-      {
-        method: "POST",
-        body: formData,
-      }
+    const res = await api.post(
+      `/User/approve-activation/${selectedUser.userId}?isApproved=true`
     );
 
-    const data = await res.json();
-    if (!data.secure_url) throw new Error("Upload failed");
-
-    setEditForm((prev) => ({
-      ...prev,
-      avatarUrl: data.secure_url,
-    }));
-  } catch {
-    alert("Upload avatar failed");
-  } finally {
-    setAvatarUploading(false);
-  }
-};
-
-
-const deleteUser = async () => {
-  if (!selectedUser) return;
-  if (!window.confirm("Bạn chắc chắn muốn xóa user này?")) return;
-
-  try {
-    const res = await api.delete(`/User/${selectedUser.userId}`);
     if (!res.data?.isSuccess) {
-      alert(res.data?.message || "Delete failed");
+      alert(res.data?.message || "Kích hoạt thất bại");
       return;
     }
+
+    alert("Kích hoạt tài khoản thành công");
+
     setSelectedUser(null);
     setUserDocuments([]);
     await fetchUsers();
   } catch {
-    alert("Error deleting user");
+    alert("Lỗi khi kích hoạt tài khoản");
   }
 };
 
@@ -270,6 +203,36 @@ const deleteUser = async () => {
       setUsers((prev) => prev.map((u) => (u.userId === userId ? { ...u, documentStatus: "NONE" } : u)));
     }
   };
+
+  // ==========================
+// FETCH DRIVER ACTIVITY LOGS
+// ==========================
+const fetchUserLogs = async (userId) => {
+  if (!userId) {
+    setActivityLogs([]);
+    return;
+  }
+
+  try {
+    setLogLoading(true);
+
+    const res = await api.get(`/DriverActivityLog/driver/${userId}`);
+    if (!res.data?.isSuccess) {
+      setActivityLogs([]);
+      return;
+    }
+
+    const logs = res.data.result?.data || [];
+    logs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    setActivityLogs(logs);
+  } catch {
+    setActivityLogs([]);
+  } finally {
+    setLogLoading(false);
+  }
+};
+
 
   // ==========================
   // DEBOUNCE SEARCH
@@ -529,13 +492,21 @@ const deleteUser = async () => {
                             <tr
   key={u.userId}
   className={`cursor-pointer
+     ${u.status === "BANNED" ? "bg-red-50 text-red-700" : ""}
     ${u.hasPendingDocumentRequest ? "bg-yellow-50 border-l-4 border-yellow-400" : ""}
-    ${isSelected ? "bg-indigo-50/70" : "hover:bg-gray-50"}
+     ${isSelected && u.status !== "BANNED" ? "bg-indigo-50/70" : "hover:bg-gray-50"}
   `}
   onClick={() => {
-    setSelectedUser(u);
-    fetchUserDocuments(u.userId, true);
-  }}
+  setSelectedUser(u);
+  fetchUserDocuments(u.userId, true);
+
+  if (getRoleName(u) === "Driver") {
+    fetchUserLogs(u.userId);
+  } else {
+    setActivityLogs([]);
+  }
+}}
+
 >
 
                               <td className="px-4 py-3">
@@ -571,7 +542,7 @@ const deleteUser = async () => {
             </div>
           </div>
           {/* RIGHT — DETAIL PANEL */}
-          <div className="col-span-4">
+          <div className="col-span-5">
             <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 h-[600px] flex flex-col">
 
               {!selectedUser ? (
@@ -600,18 +571,18 @@ const deleteUser = async () => {
 
   {/* ADMIN ACTIONS */}
   <div className="flex gap-2">
-    <button
-      onClick={() => openEditUser(selectedUser)}
-      className="px-3 py-1.5 rounded-full border text-xs bg-white hover:bg-gray-50"
-    >
-      ✏️ Edit
-    </button>
-    <button
-      onClick={deleteUser}
-      className="px-3 py-1.5 rounded-full border text-xs text-red-600 hover:bg-red-50"
-    >
-      🗑 Delete
-    </button>
+    
+
+    {selectedUser.status === "PENDING_ACTIVATION" && (
+  <button
+    onClick={approveActivation}
+    className="px-3 py-1.5 rounded-full text-xs font-medium
+               bg-green-600 text-white hover:bg-green-700"
+  >
+    ✅ Kích hoạt lại
+  </button>
+)}
+
   </div>
 </div>
 
@@ -704,97 +675,52 @@ const deleteUser = async () => {
                         </div>
                       )}
                     </section>
+                    {/* DRIVER ACTIVITY LOGS */}
+{getRoleName(selectedUser) === "Driver" && (
+  <section>
+    <h3 className="text-sm font-semibold mb-3">
+      Driver Activity Logs
+    </h3>
+
+    {logLoading ? (
+      <div className="text-xs text-gray-500">Loading logs...</div>
+    ) : activityLogs.length === 0 ? (
+      <div className="text-xs text-gray-500">No activity logs.</div>
+    ) : (
+      <div className="space-y-2 max-h-64 overflow-y-auto">
+        {activityLogs.map((log) => (
+          <div
+            key={log.driverActivityLogId}
+            className="rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs"
+          >
+            <div className="font-medium text-gray-900">
+              {log.action}
+            </div>
+
+            {log.description && (
+              <div className="text-gray-600 mt-1">
+                {log.description}
+              </div>
+            )}
+
+            <div className="text-gray-400 mt-1">
+              {formatDate(log.createdAt)}
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </section>
+)}
+
                   </div>
                 </>
               )}
             </div>
           </div>
         </div>
-{/* UPDATE USER MODAL */}
-{editOpen && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-    <div className="bg-white w-full max-w-lg rounded-2xl p-6">
-      <h2 className="text-lg font-semibold mb-4">Update User</h2>
 
-      <div className="space-y-3">
-        <input
-          value={editForm.fullName}
-          onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
-          placeholder="Full name"
-          className="w-full border rounded px-3 py-2 text-sm"
-        />
-
-    {/* AVATAR UPLOAD */}
-<div className="space-y-2">
-  <label className="text-xs font-medium text-gray-600">Avatar</label>
-
-  {editForm.avatarUrl && (
-    <img
-      src={editForm.avatarUrl}
-      alt="Avatar preview"
-      className="w-20 h-20 rounded-full object-cover border"
-    />
-  )}
-
-  
-
-  {avatarUploading && (
-    <p className="text-xs text-gray-500">Uploading avatar...</p>
-  )}
-</div>
-
-
-        {getRoleName(selectedUser) === "Driver" && (
-          <>
-            <input
-              placeholder="License number"
-              className="w-full border rounded px-3 py-2 text-sm"
-              onChange={(e) => setEditForm({ ...editForm, licenseNumber: e.target.value })}
-            />
-            <input
-              placeholder="License class"
-              className="w-full border rounded px-3 py-2 text-sm"
-              onChange={(e) => setEditForm({ ...editForm, licenseClass: e.target.value })}
-            />
-          </>
-        )}
-
-        {(getRoleName(selectedUser) === "Owner" ||
-          getRoleName(selectedUser) === "Provider") && (
-          <>
-            <input
-              placeholder="Company name"
-              className="w-full border rounded px-3 py-2 text-sm"
-              onChange={(e) => setEditForm({ ...editForm, companyName: e.target.value })}
-            />
-            <input
-              placeholder="Tax code"
-              className="w-full border rounded px-3 py-2 text-sm"
-              onChange={(e) => setEditForm({ ...editForm, taxCode: e.target.value })}
-            />
-          </>
-        )}
-      </div>
-
-      <div className="mt-6 flex justify-end gap-3">
-        <button
-          onClick={() => setEditOpen(false)}
-          className="px-4 py-2 rounded border text-sm"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={submitUpdateUser}
-          disabled={saving}
-          className="px-4 py-2 rounded bg-indigo-600 text-white text-sm"
-        >
-          {saving ? "Saving..." : "Save"}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
+    
         {/* IMAGE PREVIEW */}
         {previewImage && (
           <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
