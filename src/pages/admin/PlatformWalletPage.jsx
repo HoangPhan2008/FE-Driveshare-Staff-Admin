@@ -109,10 +109,11 @@ export default function PlatformWalletPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-3 py-2 text-left">Date</th>
-                <th className="px-3 py-2 text-left">Type</th>
-                <th className="px-3 py-2 text-right">Amount</th>
-                <th className="px-3 py-2 text-right">Balance After</th>
-                <th className="px-3 py-2 text-left">Ref</th>
+<th className="px-3 py-2 text-left">Type</th>
+<th className="px-3 py-2 text-right">Balance Before</th>
+<th className="px-3 py-2 text-right">Balance After</th>
+<th className="px-3 py-2 text-right">Amount</th>
+
               </tr>
             </thead>
             <tbody>
@@ -124,20 +125,24 @@ export default function PlatformWalletPage() {
                   <td className="px-3 py-2 font-medium">
                     {t.type}
                   </td>
-                  <td
-                    className={`px-3 py-2 text-right font-semibold ${amountClass(
-                      t.amount
-                    )}`}
-                  >
-                    {t.amount >= 0 ? "+" : ""}
-                    {t.amount.toLocaleString()} VND
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    {t.balanceAfter?.toLocaleString()} VND
-                  </td>
-                  <td className="px-3 py-2 text-xs text-gray-600">
-                    {t.tripId || "-"}
-                  </td>
+                  {/* Balance Before */}
+<td className="px-3 py-2 text-right">
+  {t.balanceBefore?.toLocaleString()} VND
+</td>
+
+{/* Balance After */}
+<td className="px-3 py-2 text-right">
+  {t.balanceAfter?.toLocaleString()} VND
+</td>
+
+{/* Amount (đưa sang vị trí Ref cũ) */}
+<td
+  className={`px-3 py-2 text-right font-semibold ${amountClass(t.amount)}`}
+>
+  {t.amount >= 0 ? "+" : ""}
+  {t.amount.toLocaleString()} VND
+</td>
+
                 </tr>
               ))}
             </tbody>
