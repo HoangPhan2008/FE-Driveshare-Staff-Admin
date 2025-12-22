@@ -33,7 +33,7 @@ export default function PlatformWalletPage() {
         const result = res.data.result;
 
         setWallet(result.walletInfo);
-        setTransactions(result.transactions.items || []);
+        setTransactions(result.transactions.data || []);
         setPagination({
           currentPage: result.transactions.currentPage,
           totalPages: result.transactions.totalPages,
