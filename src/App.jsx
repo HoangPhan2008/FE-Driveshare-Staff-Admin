@@ -27,6 +27,7 @@ import VehicleDocumentReviewList from "./pages/staff/VehicleDocumentReviewList";
 import VehicleDocumentReviewDetail from "./pages/staff/VehicleDocumentReviewDetail";
 
 import TransactionPage from "./pages/admin/TransactionPage";
+import PlatformWalletPage from "./pages/admin/PlatformWalletPage";
 
 
 
@@ -188,6 +189,15 @@ export default function App() {
     </RequireRole>
   }
 />
+<Route
+  path="/admin/platform-wallet"
+  element={
+    <RequireRole allowedRoles={["Admin"]}>
+      <PlatformWalletPage />
+    </RequireRole>
+  }
+/>
+
 
           {/* DEFAULT */}
           <Route path="*" element={<Navigate to="/" replace />} />
