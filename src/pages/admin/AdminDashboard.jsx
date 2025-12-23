@@ -136,8 +136,7 @@ export default function AdminDashboard() {
         api.get("/Admin/trips/by-status"),
       ]);
 
-      if (overviewRes?.data?.isSuccess)
-        setOverview(overviewRes.data.result);
+      if (overviewRes?.data?.isSuccess) setOverview(overviewRes.data.result);
 
       if (revenueRes?.data?.isSuccess)
         setRevenueSeries(revenueRes.data.result || []);
@@ -237,10 +236,7 @@ export default function AdminDashboard() {
                 title="Total Revenue"
                 value={formatCurrency(overview.totalRevenue)}
               />
-              <KpiCard
-                title="Total Packages"
-                value={overview.totalPackages}
-              />
+              <KpiCard title="Total Packages" value={overview.totalPackages} />
             </div>
 
             {/* CHART ROW */}
@@ -292,7 +288,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* WALLET HISTORY */}
-            <div className="mt-8 bg-white p-6 rounded-xl shadow">
+            {/* <div className="mt-8 bg-white p-6 rounded-xl shadow">
               <h2 className="font-semibold mb-4">Transaction history</h2>
 
               {historyLoading ? (
@@ -342,7 +338,7 @@ export default function AdminDashboard() {
                   Next
                 </button>
               </div>
-            </div>
+            </div> */}
           </>
         )}
       </main>
